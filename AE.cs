@@ -1,5 +1,8 @@
-﻿using ICities;
-using UnityEngine;
+﻿using ColossalFramework;
+using ColossalFramework.UI;
+using ICities;
+using System.Linq;
+using System;
 
 namespace ApocalypseEnhancer
 {
@@ -19,28 +22,41 @@ namespace ApocalypseEnhancer
             get { return "Enhancing visual effects in destroyed cities and automatically disabling destroyed public buidlings "; }
         }
 
-        public void OnSettingsUI(UIHelperBase helper) {
-            UIHelperBase group = helper.AddGroup(this.Name);
-        }
-    }
-    #endregion
-
-    #region Mod Behavior
-    /// <summary>
-    /// Will first look at all roads, and if they are flooded, will turn off their street lights.
-    /// Will also look at all public buildings, and turn them off if they are flooded or destroyed
-    /// </summary>
-    public class AELoader : LoadingExtensionBase
-    {
-        /// <summary>
-        /// This event is triggerred when a level is loaded
-        /// </summary>
-        public override void OnLevelLoaded(LoadMode mode)
+        public void OnSettingsUI(UIHelperBase helper)
         {
-            base.OnLevelLoaded(mode);
-
-            DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "AE Loaded");
+            UIHelperBase group = helper.AddGroup("Apocalypse Enhancer");
+            group.AddButton("Disable incapacitated buildings", DisableIncapacitatedPublicBuildings);
         }
+
+        #endregion
+        #region Mod Behavior
+        public void DisableIncapacitatedPublicBuildings()
+        {
+            DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "[AE] Clicked");
+            Building.Flags incapacitationFlags = Building.Flags.BurnedDown | Building.Flags.Collapsed | Building.Flags.Flooded;
+
+            Singleton<BuildingManager>.instance.m_buildings.m_buffer
+                .TakeWhile(building => building.m_flags == incapacitationFlags)
+                .TakeWhile(building =>
+                       building.Info.GetService().Equals(Service.PoliceDepartment)
+                    || building.Info.GetService().Equals(Service.FireDepartment)
+                    || building.Info.GetService().Equals(Service.PublicTransport)
+                    || building.Info.GetService().Equals(Service.Beautification)
+                    || building.Info.GetService().Equals(Service.Garbage)
+                    || building.Info.GetService().Equals(Service.Monument)
+                    || building.Info.GetService().Equals(Service.Water)
+                    || building.Info.GetService().Equals(Service.Education)
+                    || building.Info.GetService().Equals(Service.HealthCare)
+                    || building.Info.GetService().Equals(Service.Tourism)
+                    || building.Info.GetService().Equals(Service.Electricity))
+                .ForEach(building => building.m_productionRate = 0);
+                //.Count();
+
+            //DebugOutputPanel.AddMessage(ColossalFramework.Plugins.PluginManager.MessageType.Message, "[AE] Total concerned: " + total.ToString());
+        }
+        #endregion
     }
-    #endregion
+
+    
+    
 }
